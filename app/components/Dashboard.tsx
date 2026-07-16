@@ -8,7 +8,6 @@ import {
   computeByGroup,
   computeByAd,
   computeByMonth,
-  monthPace,
   fmtBRL,
   fmtNum,
   fmtPct,
@@ -112,9 +111,7 @@ export default function Dashboard({
   const daily = useMemo(() => computeDaily(rows), [rows]);
   const groups = useMemo(() => computeByGroup(rows), [rows]);
   const ads = useMemo(() => computeByAd(rows), [rows]);
-  const pace = useMemo(() => monthPace(rows).fraction, [rows]);
 
-  const isCurrent = !isAll && selected === currentMonth;
   const nMonths = Math.max(1, monthSummaries.length);
 
   // Meta soma-se ao selecionar "Todos os meses".
@@ -230,8 +227,6 @@ export default function Dashboard({
               cliques={totals.cliques}
               goalInvestimento={goalInvest}
               goalCliques={goalClicks}
-              isCurrentMonth={isCurrent}
-              pace={pace}
               scopeLabel={isAll ? `acumulado · ${nMonths} meses` : "por mês"}
             />
 

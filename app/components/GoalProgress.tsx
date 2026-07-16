@@ -7,13 +7,12 @@ interface MeterProps {
   valueText: string;
   goalText: string;
   pct: number; // 0..(100+)
-  pace?: number | null; // fração 0..1 do ritmo esperado (mês corrente)
+  reachedLabel: string; // texto quando a meta é superada (>= 100%)
 }
 
-function Meter({ label, valueText, goalText, pct, pace }: MeterProps) {
+function Meter({ label, valueText, goalText, pct, reachedLabel }: MeterProps) {
   const fill = Math.max(0, Math.min(100, pct));
   const superada = pct >= 100;
-  const pacePct = pace != null ? Math.min(100, pace * 100) : null;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -56,27 +55,14 @@ function Meter({ label, valueText, goalText, pct, pace }: MeterProps) {
               : "linear-gradient(90deg, #6f5a30, #b8974f)",
           }}
         />
-        {pacePct != null && (
-          <div
-            className="absolute top-[-3px] bottom-[-3px] w-[2px] rounded"
-            style={{
-              left: `calc(${pacePct}% - 1px)`,
-              background: "rgba(33,29,20,0.55)",
-            }}
-            aria-hidden
-          />
-        )}
       </div>
 
-      <div className="flex items-center justify-between text-[11.5px]">
-        <span style={{ color: "var(--ink-muted)" }}>
-          {superada ? "Meta atingida" : "Em andamento"}
+      <div className="text-[11.5px]">
+        <span
+          style={{ color: superada ? "var(--status-good)" : "var(--ink-muted)" }}
+        >
+          {superada ? reachedLabel : "Em andamento"}
         </span>
-        {pacePct != null && (
-          <span style={{ color: "var(--ink-muted)" }}>
-            ▏ritmo esperado: {fmtPct(pacePct, 0)}
-          </span>
-        )}
       </div>
     </div>
   );
@@ -87,8 +73,6 @@ interface GoalProgressProps {
   cliques: number;
   goalInvestimento: number;
   goalCliques: number;
-  isCurrentMonth: boolean;
-  pace: number | null;
   scopeLabel?: string;
 }
 
@@ -97,12 +81,8 @@ export default function GoalProgress({
   cliques,
   goalInvestimento,
   goalCliques,
-  isCurrentMonth,
-  pace,
   scopeLabel = "por mês",
 }: GoalProgressProps) {
-  const paceValue = isCurrentMonth ? pace : null;
-
   return (
     <section className="cs-card cs-hover cs-rise p-5 sm:p-6">
       <div className="flex items-center gap-2 mb-4 sm:mb-5">
@@ -129,14 +109,14 @@ export default function GoalProgress({
           valueText={fmtBRL(investimento)}
           goalText={fmtBRL(goalInvestimento)}
           pct={goalInvestimento > 0 ? (investimento / goalInvestimento) * 100 : 0}
-          pace={paceValue}
+          reachedLabel="Meta alcançada"
         />
         <Meter
           label="Cliques"
           valueText={fmtNum(cliques)}
           goalText={fmtNum(goalCliques)}
           pct={goalCliques > 0 ? (cliques / goalCliques) * 100 : 0}
-          pace={paceValue}
+          reachedLabel="Meta batida"
         />
       </div>
     </section>
