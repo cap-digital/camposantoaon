@@ -1,0 +1,16 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8974f"/>
+      <stop offset="0.55" stop-color="#8a6d35"/>
+      <stop offset="1" stop-color="#6b5530"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="11" fill="url(#g)"/>
+  <!-- capela -->
+  <path d="M24 11 L37 21 V39 H11 V21 Z" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round" fill="none"/>
+  <!-- cruz -->
+  <path d="M24 5 V12 M20.4 8.2 H27.6" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- porta em arco -->
+  <path d="M20 39 V30 a4 4 0 0 1 8 0 V39" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round" fill="none"/>
+</svg>
