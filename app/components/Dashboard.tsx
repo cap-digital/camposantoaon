@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RawRow, GOAL_CLIQUES, GOAL_INVESTIMENTO } from "@/lib/types";
+import { RawRow, GOAL_CLIQUES, GOAL_INVESTIMENTO, MONTH_INDEX } from "@/lib/types";
 import {
   computeTotals,
   computeDaily,
@@ -111,6 +111,21 @@ export default function Dashboard({
   const daily = useMemo(() => computeDaily(rows), [rows]);
   const groups = useMemo(() => computeByGroup(rows), [rows]);
   const ads = useMemo(() => computeByAd(rows), [rows]);
+
+  // Meses do recorte atual sem detalhamento por anúncio — a aba do mês corrente
+  // deixou de trazer a coluna de anúncio, então a tabela cai para o nível de
+  // grupo em vez de ficar vazia.
+  const monthsWithoutAds = useMemo(() => {
+    const all = new Set<string>();
+    const withAds = new Set<string>();
+    for (const r of rows) {
+      all.add(r.Mes);
+      if (r.ad_name) withAds.add(r.Mes);
+    }
+    return Array.from(all)
+      .filter((m) => !withAds.has(m))
+      .sort((a, b) => (MONTH_INDEX[a] ?? 99) - (MONTH_INDEX[b] ?? 99));
+  }, [rows]);
 
   const nMonths = Math.max(1, monthSummaries.length);
 
@@ -269,7 +284,11 @@ export default function Dashboard({
                 <GroupDonut groups={groups} />
               </div>
               <div className="min-w-0">
-                <AdTable ads={ads} />
+                <AdTable
+                  ads={ads}
+                  groups={groups}
+                  missingMonths={monthsWithoutAds}
+                />
               </div>
             </div>
 

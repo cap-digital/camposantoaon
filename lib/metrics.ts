@@ -54,7 +54,9 @@ export function computeDaily(rows: RawRow[]): DayPoint[] {
   const map = new Map<string, DayPoint>();
 
   for (const r of rows) {
-    const d = new Date(r.date);
+    const ts = Date.parse(r.date);
+    if (!Number.isFinite(ts)) continue;
+    const d = new Date(ts);
     const day = d.getUTCDate();
     const month = d.getUTCMonth() + 1;
     const key = r.date.slice(0, 10); // YYYY-MM-DD
@@ -63,7 +65,7 @@ export function computeDaily(rows: RawRow[]): DayPoint[] {
     const cur =
       map.get(key) ??
       ({
-        ts: Date.parse(key),
+        ts,
         dateLabel,
         investimento: 0,
         cliques: 0,
@@ -89,16 +91,31 @@ export interface GroupSlice {
   impressoes: number;
   conversoes: number;
   ctr: number;
+  cpc: number;
 }
 
-// Limpa "[KEYWORDS] [Institucional]" -> "Institucional".
+// Limpa "[KEYWORDS] [Institucional]" -> "Institucional". A aba do mês corrente
+// já traz o nome limpo ("Atendimento Whatsapp"), então nem sempre há colchetes.
 export function cleanGroupName(raw: string): string {
+  if (!raw) return "Sem grupo";
   const matches = raw.match(/\[([^\]]+)\]/g);
   if (matches && matches.length > 0) {
     const last = matches[matches.length - 1].replace(/[\[\]]/g, "").trim();
     return titleCasePt(last);
   }
   return raw;
+}
+
+// Chave de identidade do grupo: nome limpo, sem acentos/caixa/pontuação. Faz
+// "[KEYWORDS] [ATENDIMENTO WHATSAPP]" e "Atendimento Whatsapp" caírem na mesma
+// fatia quando o filtro cobre mais de um mês.
+function groupKey(raw: string): string {
+  return cleanGroupName(raw)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function titleCasePt(s: string): string {
@@ -115,8 +132,9 @@ export function computeByGroup(rows: RawRow[]): GroupSlice[] {
 
   for (const r of rows) {
     const raw = r.ad_group_name;
+    const key = groupKey(raw);
     const cur =
-      map.get(raw) ??
+      map.get(key) ??
       ({
         name: cleanGroupName(raw),
         raw,
@@ -125,18 +143,20 @@ export function computeByGroup(rows: RawRow[]): GroupSlice[] {
         impressoes: 0,
         conversoes: 0,
         ctr: 0,
+        cpc: 0,
       } as GroupSlice);
 
     cur.investimento += num(r.Investimento);
     cur.cliques += num(r.clicks);
     cur.impressoes += num(r.impressions);
     cur.conversoes += num(r.conversions);
-    map.set(raw, cur);
+    map.set(key, cur);
   }
 
   const arr = Array.from(map.values());
   for (const g of arr) {
     g.ctr = g.impressoes > 0 ? (g.cliques / g.impressoes) * 100 : 0;
+    g.cpc = g.cliques > 0 ? g.investimento / g.cliques : 0;
   }
   return arr.sort((a, b) => b.cliques - a.cliques);
 }
@@ -156,7 +176,10 @@ export function computeByAd(rows: RawRow[]): AdRow[] {
   const map = new Map<string, AdRow>();
 
   for (const r of rows) {
+    // A aba do mês corrente não traz a coluna de anúncio: essas linhas entram
+    // nos totais e nos grupos, mas não têm detalhamento por anúncio.
     const name = r.ad_name;
+    if (!name) continue;
     const cur =
       map.get(name) ??
       ({
@@ -239,7 +262,9 @@ export function monthPace(rows: RawRow[]): {
   let year = 2026;
   let month = 1;
   for (const r of rows) {
-    const d = new Date(r.date);
+    const t = Date.parse(r.date);
+    if (!Number.isFinite(t)) continue;
+    const d = new Date(t);
     const day = d.getUTCDate();
     if (day > maxDay) {
       maxDay = day;

@@ -1,10 +1,12 @@
-// Raw row shape returned by the Supabase edge function (Google Pesquisa data).
+// Forma canônica de uma linha, já normalizada por `lib/data.ts`.
+// As abas da planilha não usam os mesmos cabeçalhos: a aba "google" (mês
+// corrente) vem com os títulos originais do Google Ads e sem coluna de
+// anúncio, enquanto "google2" (histórico) usa nomes normalizados.
 export interface RawRow {
   date: string;
   campaign: string;
   ad_group_name: string;
-  ad_name: string;
-  spend: number; // ignorado — usamos sempre "Investimento"
+  ad_name: string | null; // ausente na aba do mês corrente
   clicks: number;
   impressions: number;
   conversions: number;
@@ -13,10 +15,13 @@ export interface RawRow {
   Investimento: number;
 }
 
+// Registro cru, como chega do endpoint — chaves variam por aba.
+export type SheetRecord = Record<string, unknown>;
+
 export interface ApiResponse {
   success: boolean;
-  google: RawRow[]; // mês atual
-  google2: RawRow[]; // meses anteriores
+  google: SheetRecord[]; // mês atual
+  google2: SheetRecord[]; // meses anteriores
   timestamp?: string;
 }
 
