@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { ApiResponse, RawRow, SheetRecord } from "./types";
 
 const ENDPOINT =
@@ -21,7 +22,7 @@ const ALIASES = {
   investimento: ["Investimento", "Cost (Spend, Amount Spent)", "Cost", "spend"],
 } as const;
 
-function pick(row: SheetRecord, keys: readonly string[]): unknown {
+export function pick(row: SheetRecord, keys: readonly string[]): unknown {
   for (const k of keys) {
     const v = row[k];
     if (v !== undefined && v !== null && v !== "") return v;
@@ -29,11 +30,11 @@ function pick(row: SheetRecord, keys: readonly string[]): unknown {
   return undefined;
 }
 
-function str(v: unknown): string {
+export function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v == null ? "" : String(v);
 }
 
-function toNum(v: unknown): number {
+export function toNum(v: unknown): number {
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
   if (typeof v !== "string") return 0;
   // Aceita "R$ 1.234,56" e "1234.56".
@@ -81,7 +82,44 @@ function normalizeAll(value: unknown): RawRow[] {
 }
 
 // Busca os dados no servidor (SSR). Feito no servidor para evitar CORS e manter
-// o painel funcional em refresh (F5) — a rota "/" é renderizada a cada requisição.
+// o painel funcional em refresh (F5) — as rotas são renderizadas a cada requisição.
+// O endpoint responde em ~5s, mas às vezes trava ~35s e devolve 500 (o Apps
+// Script responde HTML em vez de JSON). Cortamos a espera e tentamos de novo.
+const ATTEMPTS = 2;
+const TIMEOUT_MS = 25000;
+
+async function requestSheets(): Promise<Record<string, unknown>> {
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${KEY}`,
+      apikey: KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name: "Functions" }),
+    // Sempre buscar dados frescos.
+    cache: "no-store",
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Record<string, unknown>;
+}
+
+// Uma única chamada ao endpoint por requisição: a página inicial lê AON e
+// Cremação ao mesmo tempo e compartilha a mesma resposta.
+export const fetchSheets = cache(async (): Promise<Record<string, unknown>> => {
+  let lastError: unknown;
+  for (let i = 0; i < ATTEMPTS; i++) {
+    try {
+      return await requestSheets();
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+});
+
 export async function fetchCampaignData(): Promise<{
   google: RawRow[];
   google2: RawRow[];
@@ -90,20 +128,7 @@ export async function fetchCampaignData(): Promise<{
   ok: boolean;
 }> {
   try {
-    const res = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${KEY}`,
-        apikey: KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: "Functions" }),
-      // Sempre buscar dados frescos.
-      cache: "no-store",
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json()) as ApiResponse;
+    const data = (await fetchSheets()) as unknown as ApiResponse;
 
     const google = normalizeAll(data.google);
     const google2 = normalizeAll(data.google2);

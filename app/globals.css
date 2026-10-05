@@ -122,3 +122,238 @@ body {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------
+   Campanha Cremação — identidade própria (grafite + brasa + oliva),
+   escopada em .theme-cremacao para não tocar no painel AON.
+   ------------------------------------------------------------------ */
+.theme-cremacao {
+  /* Paleta categórica validada (CVD ΔE ≥ 8 sobre superfície clara) */
+  --cr-meta: #3f6fa8; /* Meta Ads — azul-ardósia */
+  --cr-yt: #c4543a; /* YouTube — tijolo */
+  --cr-c3: #2f8f6f;
+  --cr-c4: #8a62b0;
+  --cr-meta-soft: rgba(63, 111, 168, 0.14);
+  --cr-yt-soft: rgba(196, 84, 58, 0.14);
+  --cr-neutral: #b4ab9b;
+
+  --cr-accent: #d6955a; /* brasa */
+  --cr-olive: #958549; /* oliva das peças da campanha */
+  --cr-surface: #fffdf9;
+  --cr-on-dark: rgba(255, 255, 255, 0.95);
+  --cr-on-dark-muted: rgba(255, 252, 246, 0.82);
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  color: var(--ink);
+}
+
+/* Fundo fixo: cobre o dourado do body também no scroll elástico */
+.cr-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  /* Cinza-taupe quente (cinzas), com brilho de brasa no topo: mesmo peso do
+     dourado da AON, para os cartões claros não gritarem contra o fundo. */
+  background-color: #85776a;
+  background-image:
+    radial-gradient(70% 55% at 88% -10%, rgba(240, 178, 118, 0.32) 0%, rgba(240, 178, 118, 0) 60%),
+    radial-gradient(120% 80% at 10% -10%, rgba(255, 246, 232, 0.22) 0%, rgba(255, 246, 232, 0) 55%),
+    radial-gradient(90% 80% at 100% 110%, rgba(52, 40, 30, 0.4) 0%, rgba(52, 40, 30, 0) 60%),
+    linear-gradient(160deg, #a69684 0%, #8f7f6d 40%, #776858 75%, #63564a 100%);
+}
+
+.cr-card {
+  background: var(--cr-surface);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 1px 2px rgba(50, 38, 26, 0.1),
+    0 18px 40px -24px rgba(50, 38, 26, 0.5);
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cr-card.cr-hover:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(50, 38, 26, 0.12),
+    0 26px 52px -22px rgba(50, 38, 26, 0.55),
+    0 0 0 1px rgba(214, 149, 90, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-card.cr-hover:hover {
+    transform: none;
+  }
+}
+
+.cr-glass {
+  background: rgba(70, 58, 47, 0.32);
+  border: 1px solid rgba(255, 248, 238, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.cr-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cr-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* ------------------------------------------------------------------
+   Página inicial (portal de campanhas)
+   ------------------------------------------------------------------ */
+.ld-split {
+  display: flex;
+  gap: 16px;
+}
+.ld-panel {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  isolation: isolate;
+  transition:
+    flex-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s ease;
+}
+@media (min-width: 1024px) {
+  .ld-split:hover .ld-panel {
+    flex-grow: 0.85;
+  }
+  .ld-split .ld-panel:hover {
+    flex-grow: 1.3;
+  }
+}
+@media (max-width: 1023px) {
+  .ld-split {
+    flex-direction: column;
+  }
+  .ld-panel {
+    flex: none;
+  }
+}
+
+.ld-cta {
+  transition: gap 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+.ld-panel:hover .ld-cta {
+  gap: 14px;
+}
+
+/* Brasas subindo */
+@keyframes ld-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--o, 0.8);
+  }
+  100% {
+    transform: translate3d(var(--dx, 20px), -620px, 0) scale(0.3);
+    opacity: 0;
+  }
+}
+.ld-ember {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 999px;
+  background: radial-gradient(circle, #ffd29a 0%, #e3934f 45%, rgba(227, 147, 79, 0) 70%);
+  animation: ld-rise linear infinite;
+  pointer-events: none;
+}
+
+/* Cursor da busca */
+@keyframes ld-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.ld-caret {
+  animation: ld-blink 1s steps(1) infinite;
+}
+
+/* Sparkline que se desenha */
+@keyframes ld-draw {
+  from {
+    stroke-dashoffset: var(--len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.ld-draw {
+  stroke-dasharray: var(--len);
+  animation: ld-draw 1.8s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Brilho que percorre o dourado */
+@keyframes ld-sheen {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  60%,
+  100% {
+    transform: translateX(260%) skewX(-18deg);
+  }
+}
+.ld-sheen {
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 35%;
+  background: linear-gradient(90deg, rgba(255, 250, 235, 0), rgba(255, 250, 235, 0.22), rgba(255, 250, 235, 0));
+  animation: ld-sheen 7s 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ld-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(127, 209, 174, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(127, 209, 174, 0);
+  }
+}
+.ld-live {
+  animation: ld-pulse 1.8s ease-out infinite;
+}
+
+@keyframes ld-shimmer {
+  from {
+    background-position: -200px 0;
+  }
+  to {
+    background-position: 200px 0;
+  }
+}
+.ld-skel {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  background-size: 400px 100%;
+  animation: ld-shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-ember,
+  .ld-sheen,
+  .ld-live,
+  .ld-caret,
+  .ld-skel {
+    animation: none;
+  }
+  .ld-draw {
+    animation: none;
+    stroke-dasharray: none;
+  }
+  .ld-ember {
+    display: none;
+  }
+}

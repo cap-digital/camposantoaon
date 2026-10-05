@@ -16,7 +16,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Campo Santo · Painel de Campanhas",
   description:
-    "Painel de mídia do Cemitério Campo Santo — Google Pesquisa. Acompanhamento de investimento, cliques e metas contratadas.",
+    "Painéis de mídia do Cemitério Campo Santo — acompanhamento de investimento, entrega e metas contratadas por campanha.",
 };
 
 export const viewport = {

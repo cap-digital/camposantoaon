@@ -32,7 +32,7 @@ interface DashboardProps {
   ok: boolean;
 }
 
-function Monogram() {
+export function Monogram() {
   return (
     <svg
       width="48"
