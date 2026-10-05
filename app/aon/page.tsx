@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchCampaignData } from "@/lib/data";
+import { fetchCampaignData, keepPreviousOnFailure } from "@/lib/data";
 import Dashboard from "@/app/components/Dashboard";
 import BackToCampaigns from "@/app/components/BackToCampaigns";
 
@@ -9,13 +9,15 @@ export const metadata: Metadata = {
     "Painel de mídia do Cemitério Campo Santo — Google Pesquisa. Acompanhamento de investimento, cliques e metas contratadas.",
 };
 
-// Renderizado a cada requisição (dados sempre frescos). Como "/aon" é uma rota
-// server-side, o refresh (F5) sempre reconstrói a página — nunca dá 404.
-export const dynamic = "force-dynamic";
+// ISR: a página fica pronta no servidor e é servida na hora; a cada 5 min a
+// próxima visita dispara a regeneração em segundo plano. Se ela falhar, a
+// versão anterior continua no ar.
+export const revalidate = 300;
 
 export default async function Page() {
   const { google, google2, currentMonth, updatedAt, ok } =
     await fetchCampaignData();
+  keepPreviousOnFailure(ok);
 
   return (
     <>

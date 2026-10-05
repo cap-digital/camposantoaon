@@ -4,11 +4,13 @@ import { Monogram } from "@/app/components/Dashboard";
 import SearchTyper from "@/app/components/landing/SearchTyper";
 import { AonLive, CremacaoLive, LiveSkeleton } from "@/app/components/landing/LiveStats";
 import { PERIOD } from "@/lib/cremacao/types";
+import { fetchCampaignData, keepPreviousOnFailure } from "@/lib/data";
+import { fetchCremacaoData } from "@/lib/cremacao/data";
 import { dateLabel, periodInfo, todayBR } from "@/lib/cremacao/metrics";
 
-// Página inicial: portal das campanhas. Dinâmica para o título, o "dia X de Y"
-// e os números ao vivo acompanharem o momento do acesso.
-export const dynamic = "force-dynamic";
+// Página inicial: portal das campanhas. ISR (ver app/aon/page.tsx): servida
+// pronta e regenerada a cada 5 min, junto com o título e o "dia X de Y".
+export const revalidate = 300;
 
 // Brasas determinísticas (mesmo resultado no servidor e no cliente).
 const EMBERS = Array.from({ length: 30 }, (_, i) => {
@@ -36,7 +38,11 @@ function Arrow() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  // Uma leitura só (compartilhada com os blocos de números abaixo).
+  const [aon, cr] = await Promise.all([fetchCampaignData(), fetchCremacaoData()]);
+  keepPreviousOnFailure(aon.ok && cr.ok);
+
   const p = periodInfo(todayBR());
   // Campanhas ativas hoje: a AON é contínua (sem data de fim); a Cremação só
   // conta dentro do período contratado. O título se ajusta sozinho.

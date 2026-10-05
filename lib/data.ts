@@ -97,8 +97,10 @@ async function requestSheets(): Promise<Record<string, unknown>> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ name: "Functions" }),
-    // Sempre buscar dados frescos.
-    cache: "no-store",
+    // Cache curto de dados (só respostas OK). `no-store` tornaria as páginas
+    // dinâmicas e desligaria o ISR; com 60s + regeneração de 5 min, os dados
+    // ficam no máximo ~6 min atrasados.
+    next: { revalidate: 60 },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
@@ -106,9 +108,7 @@ async function requestSheets(): Promise<Record<string, unknown>> {
   return (await res.json()) as Record<string, unknown>;
 }
 
-// Uma única chamada ao endpoint por requisição: a página inicial lê AON e
-// Cremação ao mesmo tempo e compartilha a mesma resposta.
-export const fetchSheets = cache(async (): Promise<Record<string, unknown>> => {
+async function requestWithRetry(): Promise<Record<string, unknown>> {
   let lastError: unknown;
   for (let i = 0; i < ATTEMPTS; i++) {
     try {
@@ -118,7 +118,27 @@ export const fetchSheets = cache(async (): Promise<Record<string, unknown>> => {
     }
   }
   throw lastError;
-});
+}
+
+// Uma única leitura por requisição: a página inicial lê AON e Cremação ao
+// mesmo tempo e compartilha a mesma resposta. O cache entre visitas é feito
+// pelas páginas (ISR, `revalidate` em cada page.tsx).
+export const fetchSheets = cache(requestWithRetry);
+
+// Em produção, se a regeneração em segundo plano falhar, lançar o erro faz o
+// Next manter no ar a versão anterior da página em vez de publicar a tela de
+// erro. No build (primeira geração) não há versão anterior: aí a página sai
+// com o aviso de erro e é refeita na próxima regeneração.
+export function keepPreviousOnFailure(ok: boolean): void {
+  if (
+    !ok &&
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE !== "phase-production-build"
+  ) {
+    throw new Error("Falha ao atualizar os dados da planilha; mantendo a versão anterior.");
+  }
+}
+
 
 export async function fetchCampaignData(): Promise<{
   google: RawRow[];

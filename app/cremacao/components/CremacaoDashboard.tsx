@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MetaRow, PERIOD, YtRow } from "@/lib/cremacao/types";
 import { dateLabel, periodInfo } from "@/lib/cremacao/metrics";
 import OverviewTab from "./OverviewTab";
@@ -17,7 +17,6 @@ interface Props {
   updatedAt: string | null;
   ok: boolean;
   today: string;
-  initialTab: TabKey;
 }
 
 // Chama: marca da Cremação (no lugar do monograma da AON).
@@ -58,9 +57,15 @@ export default function CremacaoDashboard({
   updatedAt,
   ok,
   today,
-  initialTab,
 }: Props) {
-  const [tab, setTab] = useState<TabKey>(initialTab);
+  const [tab, setTab] = useState<TabKey>("geral");
+
+  // Abre direto na aba do link (?aba=meta), lida no cliente.
+  useEffect(() => {
+    const aba = new URLSearchParams(window.location.search).get("aba");
+    const found = TABS.find((t) => t.key === aba);
+    if (found) setTab(found.key);
+  }, []);
   const p = periodInfo(today);
 
   // Mantém a aba na URL (?aba=…) para o F5 e links diretos.
