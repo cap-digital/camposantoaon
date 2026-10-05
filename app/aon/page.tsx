@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { fetchCampaignData, keepPreviousOnFailure } from "@/lib/data";
-import Dashboard from "@/app/components/Dashboard";
+import { fetchCampaignData } from "@/lib/data";
+import AonPanel from "./AonPanel";
 import BackToCampaigns from "@/app/components/BackToCampaigns";
 
 export const metadata: Metadata = {
@@ -10,21 +10,20 @@ export const metadata: Metadata = {
 };
 
 // ISR: a página fica pronta no servidor e é servida na hora; a cada 5 min a
-// próxima visita dispara a regeneração em segundo plano. Se ela falhar, a
-// versão anterior continua no ar.
+// próxima visita dispara a regeneração em segundo plano. Se a leitura falhar,
+// a página sai mesmo assim e o painel busca os dados no navegador (/api/aon).
 export const revalidate = 300;
 
 export default async function Page() {
   const { google, google2, currentMonth, updatedAt, ok } =
     await fetchCampaignData();
-  keepPreviousOnFailure(ok);
 
   return (
     <>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-4 -mb-3">
         <BackToCampaigns />
       </div>
-      <Dashboard
+      <AonPanel
         google={google}
         google2={google2}
         currentMonth={currentMonth}

@@ -172,7 +172,8 @@ export async function fetchCremacaoData(): Promise<{
       updatedAt: typeof data.timestamp === "string" ? data.timestamp : null,
       ok: true,
     };
-  } catch {
+  } catch (err) {
+    console.error("[Cremação] falha ao ler a planilha:", err);
     return { meta: [], youtube: [], updatedAt: null, ok: false };
   }
 }

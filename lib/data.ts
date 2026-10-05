@@ -125,19 +125,6 @@ async function requestWithRetry(): Promise<Record<string, unknown>> {
 // pelas páginas (ISR, `revalidate` em cada page.tsx).
 export const fetchSheets = cache(requestWithRetry);
 
-// Em produção, se a regeneração em segundo plano falhar, lançar o erro faz o
-// Next manter no ar a versão anterior da página em vez de publicar a tela de
-// erro. No build (primeira geração) não há versão anterior: aí a página sai
-// com o aviso de erro e é refeita na próxima regeneração.
-export function keepPreviousOnFailure(ok: boolean): void {
-  if (
-    !ok &&
-    process.env.NODE_ENV === "production" &&
-    process.env.NEXT_PHASE !== "phase-production-build"
-  ) {
-    throw new Error("Falha ao atualizar os dados da planilha; mantendo a versão anterior.");
-  }
-}
 
 
 export async function fetchCampaignData(): Promise<{
@@ -163,7 +150,8 @@ export async function fetchCampaignData(): Promise<{
       updatedAt: data.timestamp ?? null,
       ok: true,
     };
-  } catch {
+  } catch (err) {
+    console.error("[AON] falha ao ler a planilha:", err);
     return {
       google: [],
       google2: [],

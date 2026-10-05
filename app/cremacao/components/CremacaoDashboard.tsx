@@ -9,6 +9,7 @@ import MetaTab from "./MetaTab";
 import YoutubeTab from "./YoutubeTab";
 import CreativesTab from "./CreativesTab";
 import { TABS, TabKey } from "../tabs";
+import { useFallbackData } from "@/app/components/useFallbackData";
 
 
 interface Props {
@@ -51,13 +52,10 @@ function BackLink({ className = "" }: { className?: string }) {
   );
 }
 
-export default function CremacaoDashboard({
-  meta,
-  youtube,
-  updatedAt,
-  ok,
-  today,
-}: Props) {
+export default function CremacaoDashboard({ today, ...initial }: Props) {
+  // Se a página estática saiu sem dados, busca no navegador (/api/cremacao).
+  const { data, loading, retry } = useFallbackData(initial, "/api/cremacao");
+  const { meta, youtube, updatedAt, ok } = data;
   const [tab, setTab] = useState<TabKey>("geral");
 
   // Abre direto na aba do link (?aba=meta), lida no cliente.
@@ -162,14 +160,34 @@ export default function CremacaoDashboard({
           </div>
         </header>
 
-        {!hasData ? (
+        {loading ? (
+          <div className="cr-card p-8 text-center" role="status">
+            <div
+              className="mx-auto h-7 w-7 rounded-full border-[3px] animate-spin"
+              style={{ borderColor: "rgba(33,29,20,0.12)", borderTopColor: "var(--cr-accent)" }}
+              aria-hidden
+            />
+            <p className="text-[15px] font-medium mt-3" style={{ color: "var(--ink)" }}>
+              Carregando os dados da planilha…
+            </p>
+            <p className="text-[13px] mt-1" style={{ color: "var(--ink-muted)" }}>
+              Isso leva alguns segundos.
+            </p>
+          </div>
+        ) : !hasData ? (
           <div className="cr-card p-8 text-center">
             <p className="text-[15px] font-medium" style={{ color: "var(--ink)" }}>
               {ok ? "A campanha ainda não registrou entrega." : "Não foi possível carregar os dados no momento."}
             </p>
-            <p className="text-[13px] mt-1" style={{ color: "var(--ink-muted)" }}>
-              Atualize a página em instantes.
-            </p>
+            {!ok && (
+              <button
+                onClick={retry}
+                className="mt-4 rounded-full px-4 py-2 text-[13px] font-semibold"
+                style={{ background: "var(--ink)", color: "#fff8ee" }}
+              >
+                Tentar de novo
+              </button>
+            )}
           </div>
         ) : (
           <div key={tab}>
