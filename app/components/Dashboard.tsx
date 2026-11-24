@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RawRow, GOAL_CLIQUES, GOAL_INVESTIMENTO, MONTH_INDEX } from "@/lib/types";
+import { KeywordRow, RawRow, GOAL_CLIQUES, GOAL_INVESTIMENTO, MONTH_INDEX } from "@/lib/types";
 import {
   computeTotals,
   computeDaily,
@@ -20,13 +20,14 @@ import GroupDonut from "./GroupDonut";
 import AdTable from "./AdTable";
 import MonthCompare from "./MonthCompare";
 import Funnel from "./Funnel";
-import RateBars, { RateItem } from "./RateBars";
+import KeywordTable from "./KeywordTable";
 
 const ALL = "Todos";
 
 interface DashboardProps {
   google: RawRow[];
   google2: RawRow[];
+  keywords: KeywordRow[];
   currentMonth: string | null;
   updatedAt: string | null;
   ok: boolean;
@@ -73,6 +74,7 @@ export function Monogram() {
 export default function Dashboard({
   google,
   google2,
+  keywords,
   currentMonth,
   updatedAt,
   ok,
@@ -82,15 +84,6 @@ export default function Dashboard({
   const monthSummaries = useMemo(
     () => computeByMonth(allRows, currentMonth),
     [allRows, currentMonth],
-  );
-
-  // Totais por mês (usados para escalar as barras de taxas/custos).
-  const monthlyTotals = useMemo(
-    () =>
-      monthSummaries.map((m) =>
-        computeTotals(allRows.filter((r) => r.Mes === m.mes)),
-      ),
-    [monthSummaries, allRows],
   );
 
   const defaultMonth =
@@ -108,6 +101,10 @@ export default function Dashboard({
   );
 
   const totals = useMemo(() => computeTotals(rows), [rows]);
+  const monthKeywords = useMemo(
+    () => (isAll ? keywords : keywords.filter((k) => k.mes === selected)),
+    [keywords, selected, isAll],
+  );
   const daily = useMemo(() => computeDaily(rows), [rows]);
   const groups = useMemo(() => computeByGroup(rows), [rows]);
   const ads = useMemo(() => computeByAd(rows), [rows]);
@@ -132,54 +129,6 @@ export default function Dashboard({
   // Meta soma-se ao selecionar "Todos os meses".
   const goalInvest = isAll ? GOAL_INVESTIMENTO * nMonths : GOAL_INVESTIMENTO;
   const goalClicks = isAll ? GOAL_CLIQUES * nMonths : GOAL_CLIQUES;
-
-  // Escala das barras: maior valor entre os meses (e o valor atual).
-  const rateItems: RateItem[] = useMemo(() => {
-    const maxOf = (sel: (t: (typeof monthlyTotals)[number]) => number, cur: number) =>
-      Math.max(cur, ...monthlyTotals.map(sel), 0.0001);
-    return [
-      {
-        label: "CTR",
-        value: totals.ctr,
-        formatted: fmtPct(totals.ctr),
-        max: maxOf((t) => t.ctr, totals.ctr),
-        kind: "rate",
-        hint: "cliques/impr.",
-      },
-      {
-        label: "Taxa de conversão",
-        value: totals.taxaConversao,
-        formatted: fmtPct(totals.taxaConversao),
-        max: maxOf((t) => t.taxaConversao, totals.taxaConversao),
-        kind: "rate",
-        hint: "conv./cliques",
-      },
-      {
-        label: "CPC",
-        value: totals.cpc,
-        formatted: fmtBRL(totals.cpc, 2),
-        max: maxOf((t) => t.cpc, totals.cpc),
-        kind: "cost",
-        hint: "por clique",
-      },
-      {
-        label: "CPM",
-        value: totals.cpm,
-        formatted: fmtBRL(totals.cpm, 2),
-        max: maxOf((t) => t.cpm, totals.cpm),
-        kind: "cost",
-        hint: "por mil impr.",
-      },
-      {
-        label: "Custo por conversão",
-        value: totals.custoConversao,
-        formatted: totals.conversoes > 0 ? fmtBRL(totals.custoConversao, 2) : "—",
-        max: maxOf((t) => t.custoConversao, totals.custoConversao),
-        kind: "cost",
-        hint: "por conversão",
-      },
-    ];
-  }, [totals, monthlyTotals]);
 
   const hasData = ok && allRows.length > 0;
 
@@ -298,7 +247,7 @@ export default function Dashboard({
               onSelect={setSelected}
             />
 
-            {/* Funil (40%) + Taxas e custos (60%) */}
+            {/* Funil (40%) + Palavras-chave (60%) */}
             <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-5">
               <div className="min-w-0 lg:col-span-2">
                 <Funnel
@@ -308,7 +257,7 @@ export default function Dashboard({
                 />
               </div>
               <div className="min-w-0 lg:col-span-3">
-                <RateBars items={rateItems} />
+                <KeywordTable keywords={monthKeywords} />
               </div>
             </div>
           </div>

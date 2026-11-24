@@ -2,11 +2,12 @@
 
 import Dashboard from "@/app/components/Dashboard";
 import { useFallbackData } from "@/app/components/useFallbackData";
-import { RawRow } from "@/lib/types";
+import { KeywordRow, RawRow } from "@/lib/types";
 
 interface AonData {
   google: RawRow[];
   google2: RawRow[];
+  keywords: KeywordRow[];
   currentMonth: string | null;
   updatedAt: string | null;
   ok: boolean;

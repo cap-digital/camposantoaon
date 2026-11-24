@@ -15,6 +15,16 @@ export interface RawRow {
   Investimento: number;
 }
 
+// Palavra-chave agregada por mês (a aba "Google_keywords" vem por dia e sem
+// coluna de mês; o mês é derivado da data).
+export interface KeywordRow {
+  mes: string;
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+}
+
 // Registro cru, como chega do endpoint — chaves variam por aba.
 export type SheetRecord = Record<string, unknown>;
 
@@ -22,6 +32,7 @@ export interface ApiResponse {
   success: boolean;
   google: SheetRecord[]; // mês atual
   google2: SheetRecord[]; // meses anteriores
+  googlekeywords?: SheetRecord[]; // palavras-chave (todos os meses, por dia)
   timestamp?: string;
 }
 

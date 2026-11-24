@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { ApiResponse, RawRow, SheetRecord } from "./types";
+import { ApiResponse, KeywordRow, MONTH_ORDER, RawRow, SheetRecord } from "./types";
 
 const ENDPOINT =
   "https://cqrpbiepyeypbkizwacu.supabase.co/functions/v1/CampoSantoAON";
@@ -81,6 +81,32 @@ function normalizeAll(value: unknown): RawRow[] {
   return out;
 }
 
+// Soma a aba de palavras-chave por mês × palavra. A aba vem por dia (~6 mil
+// linhas); agregando no servidor a página carrega só algumas centenas.
+function aggregateKeywords(value: unknown): KeywordRow[] {
+  if (!Array.isArray(value)) return [];
+  const map = new Map<string, KeywordRow>();
+  for (const r of value) {
+    if (!r || typeof r !== "object") continue;
+    const row = r as SheetRecord;
+    const keyword = str(pick(row, ["keyword_text", "Keyword", "Palavra-chave"]));
+    const ts = Date.parse(str(pick(row, ALIASES.date)));
+    if (!keyword || Number.isNaN(ts)) continue;
+    // Datas chegam como meia-noite de Brasília em UTC (03:00Z): o mês UTC é o mês local.
+    const mes = MONTH_ORDER[new Date(ts).getUTCMonth()];
+    const key = `${mes}|${keyword}`;
+    let acc = map.get(key);
+    if (!acc) {
+      acc = { mes, keyword, clicks: 0, impressions: 0, conversions: 0 };
+      map.set(key, acc);
+    }
+    acc.clicks += toNum(pick(row, ALIASES.clicks));
+    acc.impressions += toNum(pick(row, ALIASES.impressions));
+    acc.conversions += toNum(pick(row, ALIASES.conversions));
+  }
+  return Array.from(map.values());
+}
+
 // Busca os dados no servidor (SSR). Feito no servidor para evitar CORS e manter
 // o painel funcional em refresh (F5) — as rotas são renderizadas a cada requisição.
 // O endpoint responde em ~5s, mas às vezes trava ~35s e devolve 500 (o Apps
@@ -130,6 +156,7 @@ export const fetchSheets = cache(requestWithRetry);
 export async function fetchCampaignData(): Promise<{
   google: RawRow[];
   google2: RawRow[];
+  keywords: KeywordRow[];
   currentMonth: string | null;
   updatedAt: string | null;
   ok: boolean;
@@ -139,6 +166,7 @@ export async function fetchCampaignData(): Promise<{
 
     const google = normalizeAll(data.google);
     const google2 = normalizeAll(data.google2);
+    const keywords = aggregateKeywords(data.googlekeywords);
 
     // O mês atual é o único presente na aba "google".
     const currentMonth = google.length > 0 ? google[0].Mes : null;
@@ -146,6 +174,7 @@ export async function fetchCampaignData(): Promise<{
     return {
       google,
       google2,
+      keywords,
       currentMonth,
       updatedAt: data.timestamp ?? null,
       ok: true,
@@ -155,6 +184,7 @@ export async function fetchCampaignData(): Promise<{
     return {
       google: [],
       google2: [],
+      keywords: [],
       currentMonth: null,
       updatedAt: null,
       ok: false,

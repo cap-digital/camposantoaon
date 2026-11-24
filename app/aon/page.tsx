@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function Page() {
-  const { google, google2, currentMonth, updatedAt, ok } =
+  const { google, google2, keywords, currentMonth, updatedAt, ok } =
     await fetchCampaignData();
 
   return (
@@ -26,6 +26,7 @@ export default async function Page() {
       <AonPanel
         google={google}
         google2={google2}
+        keywords={keywords}
         currentMonth={currentMonth}
         updatedAt={updatedAt}
         ok={ok}
