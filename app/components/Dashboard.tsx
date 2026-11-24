@@ -126,38 +126,29 @@ export default function Dashboard({
 
   const nMonths = Math.max(1, monthSummaries.length);
 
-  // Comparativo com o mês anterior (não se aplica a "Todos"). No mês corrente,
-  // ainda incompleto, compara com os mesmos dias do mês anterior (1 a N) para
-  // não confrontar um mês parcial com um mês fechado.
+  // Comparativo com o mês anterior inteiro (não se aplica a "Todos"). O selo
+  // mostra a variação e o valor que o mês anterior fechou.
   const deltas = useMemo(() => {
     if (isAll) return null;
     const idx = monthSummaries.findIndex((m) => m.mes === selected);
     if (idx <= 0) return null;
     const prevMes = monthSummaries[idx - 1].mes;
-    let prevRows = allRows.filter((r) => r.Mes === prevMes);
-    let label = `vs. ${prevMes}`;
-    if (selected === currentMonth) {
-      const lastDay = rows.reduce((mx, r) => {
-        const t = Date.parse(r.date);
-        return Number.isNaN(t) ? mx : Math.max(mx, new Date(t).getUTCDate());
-      }, 0);
-      if (lastDay > 0) {
-        prevRows = prevRows.filter((r) => new Date(Date.parse(r.date)).getUTCDate() <= lastDay);
-        label = `vs. ${prevMes} (1–${lastDay})`;
-      }
-    }
-    const prev = computeTotals(prevRows);
-    const rel = (cur: number, before: number) => (before > 0 ? cur / before - 1 : null);
-    const make = (cur: number, before: number, higherIsBetter: boolean): Delta | null => {
-      const change = rel(cur, before);
-      return change == null ? null : { change, higherIsBetter, label };
-    };
+    const prev = computeTotals(allRows.filter((r) => r.Mes === prevMes));
+    const make = (
+      cur: number,
+      before: number,
+      higherIsBetter: boolean,
+      formatted: string,
+    ): Delta | null =>
+      before > 0
+        ? { change: cur / before - 1, higherIsBetter, label: `${prevMes}: ${formatted}` }
+        : null;
     return {
-      cliques: make(totals.cliques, prev.cliques, true),
-      ctr: make(totals.ctr, prev.ctr, true),
-      cpc: make(totals.cpc, prev.cpc, false),
+      cliques: make(totals.cliques, prev.cliques, true, fmtNum(prev.cliques)),
+      ctr: make(totals.ctr, prev.ctr, true, fmtPct(prev.ctr)),
+      cpc: make(totals.cpc, prev.cpc, false, fmtBRL(prev.cpc, 2)),
     };
-  }, [isAll, monthSummaries, selected, currentMonth, allRows, rows, totals]);
+  }, [isAll, monthSummaries, selected, allRows, totals]);
 
   // Meta soma-se ao selecionar "Todos os meses".
   const goalInvest = isAll ? GOAL_INVESTIMENTO * nMonths : GOAL_INVESTIMENTO;

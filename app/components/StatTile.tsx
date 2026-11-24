@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 export interface Delta {
   change: number;
   higherIsBetter: boolean;
-  label: string; // "vs. Outubro (1–24)"
+  label: string; // "Outubro: 1.024"
 }
 
 interface StatTileProps {
