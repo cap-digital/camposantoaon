@@ -14,7 +14,7 @@ import {
 } from "@/lib/metrics";
 import MonthFilter from "./MonthFilter";
 import GoalProgress from "./GoalProgress";
-import StatTile from "./StatTile";
+import StatTile, { Delta } from "./StatTile";
 import DailyChart from "./DailyChart";
 import GroupDonut from "./GroupDonut";
 import AdTable from "./AdTable";
@@ -126,6 +126,39 @@ export default function Dashboard({
 
   const nMonths = Math.max(1, monthSummaries.length);
 
+  // Comparativo com o mês anterior (não se aplica a "Todos"). No mês corrente,
+  // ainda incompleto, compara com os mesmos dias do mês anterior (1 a N) para
+  // não confrontar um mês parcial com um mês fechado.
+  const deltas = useMemo(() => {
+    if (isAll) return null;
+    const idx = monthSummaries.findIndex((m) => m.mes === selected);
+    if (idx <= 0) return null;
+    const prevMes = monthSummaries[idx - 1].mes;
+    let prevRows = allRows.filter((r) => r.Mes === prevMes);
+    let label = `vs. ${prevMes}`;
+    if (selected === currentMonth) {
+      const lastDay = rows.reduce((mx, r) => {
+        const t = Date.parse(r.date);
+        return Number.isNaN(t) ? mx : Math.max(mx, new Date(t).getUTCDate());
+      }, 0);
+      if (lastDay > 0) {
+        prevRows = prevRows.filter((r) => new Date(Date.parse(r.date)).getUTCDate() <= lastDay);
+        label = `vs. ${prevMes} (1–${lastDay})`;
+      }
+    }
+    const prev = computeTotals(prevRows);
+    const rel = (cur: number, before: number) => (before > 0 ? cur / before - 1 : null);
+    const make = (cur: number, before: number, higherIsBetter: boolean): Delta | null => {
+      const change = rel(cur, before);
+      return change == null ? null : { change, higherIsBetter, label };
+    };
+    return {
+      cliques: make(totals.cliques, prev.cliques, true),
+      ctr: make(totals.ctr, prev.ctr, true),
+      cpc: make(totals.cpc, prev.cpc, false),
+    };
+  }, [isAll, monthSummaries, selected, currentMonth, allRows, rows, totals]);
+
   // Meta soma-se ao selecionar "Todos os meses".
   const goalInvest = isAll ? GOAL_INVESTIMENTO * nMonths : GOAL_INVESTIMENTO;
   const goalClicks = isAll ? GOAL_CLIQUES * nMonths : GOAL_CLIQUES;
@@ -208,6 +241,7 @@ export default function Dashboard({
                 value={fmtNum(totals.cliques)}
                 accent="var(--brand)"
                 sub={`Meta ${fmtNum(goalClicks)}`}
+                delta={deltas?.cliques}
                 delay={40}
               />
               <StatTile
@@ -215,6 +249,7 @@ export default function Dashboard({
                 value={fmtPct(totals.ctr)}
                 accent="var(--cat-3)"
                 sub="Cliques ÷ impressões"
+                delta={deltas?.ctr}
                 delay={80}
               />
               <StatTile
@@ -222,6 +257,7 @@ export default function Dashboard({
                 value={fmtBRL(totals.cpc, 2)}
                 accent="var(--cat-2)"
                 sub="Custo por clique"
+                delta={deltas?.cpc}
                 delay={120}
               />
             </div>

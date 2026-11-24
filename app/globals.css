@@ -25,6 +25,7 @@
 
   --status-good: #2f8f6f;
   --status-warn: #c68a2e;
+  --status-bad: #c0443a;
 }
 
 html,
